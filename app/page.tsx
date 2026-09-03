@@ -1,69 +1,149 @@
-import Image from "next/image";
+import Link from "next/link";
+import { AlertTriangle, Flame, ListTodo } from "lucide-react";
+import {
+  getPhaseProgress,
+  getOverallProgress,
+  getTodayTasks,
+  getStuckTasks,
+  getWeekHours,
+  getStudyHeatmap,
+  getStreakDays,
+} from "@/lib/data/dashboard";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Heatmap } from "@/components/dashboard/Heatmap";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { priorityBadgeClass, statusBadgeClass, formatHours, daysSince } from "@/lib/utils";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default function DashboardPage() {
+  const overall = getOverallProgress();
+  const phases = getPhaseProgress();
+  const todayTasks = getTodayTasks();
+  const stuck = getStuckTasks();
+  const week = getWeekHours();
+  const heatmap = getStudyHeatmap();
+  const streak = getStreakDays();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="text-sm text-foreground-muted">Ringkasan progres belajar Market Intelligence kamu.</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-foreground-muted">Progres total</p>
+          <p className="mt-1 text-3xl font-semibold">{overall.pct}%</p>
+          <p className="mt-1 text-xs text-foreground-muted">
+            {overall.done} dari {overall.total} tugas selesai
           </p>
+          <ProgressBar pct={overall.pct} className="mt-3" />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-foreground-muted">Jam belajar minggu ini</p>
+          <p className="mt-1 text-3xl font-semibold">
+            {formatHours(week.actualHours)}
+            <span className="text-base font-normal text-foreground-muted"> / {formatHours(week.targetHours)}</span>
+          </p>
+          <p className="mt-1 text-xs text-foreground-muted">Target mingguan</p>
+          <ProgressBar pct={(week.actualHours / (week.targetHours || 1)) * 100} className="mt-3" />
+        </div>
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-foreground-muted">Streak belajar</p>
+          <p className="mt-1 flex items-center gap-2 text-3xl font-semibold">
+            <Flame size={24} className="text-accent" />
+            {streak} hari
+          </p>
+          <p className="mt-1 text-xs text-foreground-muted">Berturut-turut hingga hari ini</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-xl border border-border bg-surface p-5 lg:col-span-2">
+          <div className="mb-3 flex items-center gap-2">
+            <ListTodo size={17} className="text-accent" />
+            <h2 className="font-medium">Apa yang harus dikerjakan hari ini</h2>
+          </div>
+          {todayTasks.length === 0 ? (
+            <EmptyState
+              title="Tidak ada tugas aktif"
+              description="Semua tugas Wajib sudah selesai, atau belum ada yang dimulai. Buka roadmap untuk memulai tugas berikutnya."
+              actionLabel="Buka Roadmap"
+              actionHref="/roadmap"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          ) : (
+            <ul className="divide-y divide-border">
+              {todayTasks.map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{t.title}</p>
+                    <p className="text-xs text-foreground-muted">{t.topic}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${priorityBadgeClass(t.priority)}`}>
+                      {t.priority}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(t.status)}`}>
+                      {t.status}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link href="/roadmap" className="mt-3 inline-block text-sm font-medium text-accent hover:underline">
+            Lihat semua roadmap &rarr;
+          </Link>
         </div>
-      </main>
+
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <h2 className="mb-3 font-medium">Aktivitas belajar</h2>
+          <Heatmap data={heatmap} />
+          <p className="mt-2 text-xs text-foreground-muted">{heatmap.length} hari terakhir</p>
+        </div>
+      </div>
+
+      {stuck.length > 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/30">
+          <div className="mb-2 flex items-center gap-2 text-amber-700 dark:text-amber-300">
+            <AlertTriangle size={17} />
+            <h2 className="font-medium">Tugas yang mungkin macet</h2>
+          </div>
+          <p className="mb-3 text-sm text-amber-700/80 dark:text-amber-300/80">
+            Tugas berikut berstatus &quot;Proses&quot; lebih dari 7 hari tanpa update. Coba tinjau kembali atau pecah jadi langkah lebih kecil.
+          </p>
+          <ul className="space-y-1.5">
+            {stuck.map((t) => (
+              <li key={t.id} className="flex items-center justify-between text-sm">
+                <span>{t.title}</span>
+                <span className="text-xs text-amber-700/70 dark:text-amber-300/70">
+                  {daysSince(t.status_changed_at)} hari
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div>
+        <h2 className="mb-3 font-medium">Progres per fase</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {phases.map((p) => (
+            <div key={p.id} className="rounded-xl border border-border bg-surface p-4">
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-sm font-medium">{p.name}</p>
+                <span className="text-xs text-foreground-muted">{p.targetPeriod}</span>
+              </div>
+              <ProgressBar pct={p.pct} />
+              <p className="mt-1.5 text-xs text-foreground-muted">
+                {p.done}/{p.total} tugas &middot; {p.pct}%
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
