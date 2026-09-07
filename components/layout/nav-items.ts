@@ -8,11 +8,13 @@ import {
   Database,
   CalendarRange,
   Settings,
+  BookOpen,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/roadmap", label: "Roadmap", icon: ListChecks },
+  { href: "/referensi", label: "Referensi", icon: BookOpen },
   { href: "/timer", label: "Timer", icon: Timer },
   { href: "/notes", label: "Catatan", icon: NotebookText },
   { href: "/flashcards", label: "Flashcards", icon: Layers },

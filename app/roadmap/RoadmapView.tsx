@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, Search, NotebookText } from "lucide-react";
 import { cn, priorityBadgeClass, statusBadgeClass, STATUS_OPTIONS, formatHours } from "@/lib/utils";
 import type { RoadmapPhase, RoadmapTask } from "@/lib/data/roadmap";
+import { resolveResourceLinks } from "@/lib/data/resource-links";
 import { updateTaskStatus, updateTaskNotes } from "./actions";
 
 function NotesField({ task }: { task: RoadmapTask }) {
@@ -95,9 +96,34 @@ function TaskRow({ task }: { task: RoadmapTask }) {
       </div>
       {open && (
         <div className="space-y-3 px-4 pb-4 pl-11">
-          <p className="text-xs text-foreground-muted">
-            Estimasi: {formatHours(task.estimated_hours)} &middot; Sumber: {task.resource_notes || "-"}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-foreground-muted">
+            <span>Estimasi: {formatHours(task.estimated_hours)}</span>
+            {task.resource_notes && (
+              <>
+                <span>&middot; Sumber:</span>
+                <span className="flex flex-wrap gap-1">
+                  {resolveResourceLinks(task.resource_notes).map((chip, i) =>
+                    chip.url ? (
+                      <a
+                        key={i}
+                        href={chip.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-full bg-accent-soft px-2 py-0.5 text-accent hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {chip.label} ↗
+                      </a>
+                    ) : (
+                      <span key={i} className="rounded-full bg-surface-muted px-2 py-0.5">
+                        {chip.label}
+                      </span>
+                    )
+                  )}
+                </span>
+              </>
+            )}
+          </div>
           <NotesField task={task} />
         </div>
       )}
