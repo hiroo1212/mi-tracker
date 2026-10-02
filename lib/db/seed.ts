@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import type Database from "better-sqlite3";
-import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
+import { eq } from "drizzle-orm";
 
 type SeedData = {
   phases: { id: number; name: string; target_period: string; order: number }[];
@@ -19,12 +19,9 @@ type SeedData = {
   data_sources: { name: string; url: string; category: string; personal_note: string }[];
 };
 
-export function seedIfEmpty(
-  db: BetterSQLite3Database<typeof schema>,
-  sqlite: Database.Database
-) {
-  const row = sqlite.prepare("SELECT COUNT(*) as c FROM phases").get() as { c: number };
-  if (row.c > 0) return;
+export async function seedIfEmpty(db: PostgresJsDatabase<typeof schema>) {
+  const [row] = await db.select({ count: schema.phases.id }).from(schema.phases).limit(1);
+  if (row) return;
 
   const sourcePath = path.join(process.cwd(), "scripts", "seed-tasks-source.json");
   if (!fs.existsSync(sourcePath)) return;
@@ -32,53 +29,67 @@ export function seedIfEmpty(
   const data: SeedData = JSON.parse(raw);
   const now = new Date().toISOString();
 
-  const insertPhase = sqlite.prepare(
-    `INSERT OR IGNORE INTO phases (id, name, target_period, "order") VALUES (?, ?, ?, ?)`
-  );
-  const insertTask = sqlite.prepare(
-    `INSERT INTO tasks (no, phase_id, topic, title, priority, estimated_hours, resource_notes, status, notes, created_at, updated_at, status_changed_at)
-     SELECT ?, ?, ?, ?, ?, ?, ?, 'Belum', '', ?, ?, ?
-     WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE no = ?)`
-  );
-  const insertFlashcard = sqlite.prepare(
-    `INSERT INTO flashcards (term, definition, category, confidence_level, created_at, updated_at)
-     SELECT ?, ?, ?, 1, ?, ? WHERE NOT EXISTS (SELECT 1 FROM flashcards WHERE term = ?)`
-  );
-  const insertDataSource = sqlite.prepare(
-    `INSERT INTO data_sources (name, url, category, personal_note, created_at, updated_at)
-     SELECT ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM data_sources WHERE name = ?)`
-  );
-
-  const tx = sqlite.transaction(() => {
-    for (const p of data.phases) {
-      insertPhase.run(p.id, p.name, p.target_period, p.order);
-    }
-    for (const t of data.tasks) {
-      insertTask.run(
-        t.no,
-        t.phase_id,
-        t.topic,
-        t.title,
-        t.priority,
-        t.estimated_hours,
-        t.resource_notes,
-        now,
-        now,
-        now,
-        t.no
-      );
-    }
-    for (const f of data.flashcards) {
-      insertFlashcard.run(f.term, f.definition, f.category, now, now, f.term);
-    }
-    for (const d of data.data_sources) {
-      insertDataSource.run(d.name, d.url, d.category, d.personal_note, now, now, d.name);
-    }
-  });
   try {
-    tx();
+    for (const p of data.phases) {
+      const exists = await db.select().from(schema.phases).where(eq(schema.phases.id, p.id)).limit(1);
+      if (exists.length === 0) {
+        await db.insert(schema.phases).values({
+          id: p.id,
+          name: p.name,
+          targetPeriod: p.target_period,
+          order: p.order,
+        });
+      }
+    }
+
+    for (const t of data.tasks) {
+      const exists = await db.select().from(schema.tasks).where(eq(schema.tasks.no, t.no)).limit(1);
+      if (exists.length === 0) {
+        await db.insert(schema.tasks).values({
+          no: t.no,
+          phaseId: t.phase_id,
+          topic: t.topic,
+          title: t.title,
+          priority: t.priority,
+          estimatedHours: t.estimated_hours,
+          resourceNotes: t.resource_notes,
+          status: "Belum",
+          notes: "",
+          statusChangedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+
+    for (const f of data.flashcards) {
+      const exists = await db.select().from(schema.flashcards).where(eq(schema.flashcards.term, f.term)).limit(1);
+      if (exists.length === 0) {
+        await db.insert(schema.flashcards).values({
+          term: f.term,
+          definition: f.definition,
+          category: f.category,
+          confidenceLevel: 1,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+
+    for (const d of data.data_sources) {
+      const exists = await db.select().from(schema.dataSources).where(eq(schema.dataSources.name, d.name)).limit(1);
+      if (exists.length === 0) {
+        await db.insert(schema.dataSources).values({
+          name: d.name,
+          url: d.url,
+          category: d.category,
+          personalNote: d.personal_note,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
   } catch (err) {
-    // Another process may be seeding concurrently (e.g. parallel build workers) — safe to ignore.
-    console.warn("seedIfEmpty: skipped due to concurrent write", err);
+    console.warn("seedIfEmpty: skipped due to error", err);
   }
 }

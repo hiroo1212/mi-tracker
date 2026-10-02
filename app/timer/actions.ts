@@ -1,6 +1,6 @@
 "use server";
 
-import { sqlite } from "@/lib/db/client";
+import { sqlite, ensureSeeded } from "@/lib/db/client";
 import { getIsoWeekInfo } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
@@ -12,7 +12,7 @@ export async function logStudySession(input: {
   mode: "focus" | "break";
 }) {
   const now = new Date().toISOString();
-  sqlite
+  await sqlite
     .prepare(
       `INSERT INTO study_sessions (task_id, started_at, ended_at, duration_minutes, mode, created_at)
        VALUES (?, ?, ?, ?, ?, ?)`
@@ -22,16 +22,16 @@ export async function logStudySession(input: {
   if (input.mode === "focus") {
     const { weekNumber, startDate } = getIsoWeekInfo(input.startedAt);
     const hours = input.durationMinutes / 60;
-    const existing = sqlite
+    const existing = (await sqlite
       .prepare(`SELECT id, actual_hours as actualHours FROM weekly_logs WHERE week_number = ? AND start_date = ?`)
-      .get(weekNumber, startDate) as { id: number; actualHours: number } | undefined;
+      .get(weekNumber, startDate)) as { id: number; actualHours: number } | undefined;
 
     if (existing) {
-      sqlite
+      await sqlite
         .prepare(`UPDATE weekly_logs SET actual_hours = ?, updated_at = ? WHERE id = ?`)
-        .run(existing.actualHours + hours, now, existing.id);
+        .run(Number(existing.actualHours) + hours, now, existing.id);
     } else {
-      sqlite
+      await sqlite
         .prepare(
           `INSERT INTO weekly_logs (week_number, start_date, target_hours, actual_hours, notes, created_at, updated_at)
            VALUES (?, ?, 9, ?, '', ?, ?)`
@@ -46,7 +46,8 @@ export async function logStudySession(input: {
 }
 
 export async function getInProgressTasks() {
-  return sqlite
+  await ensureSeeded();
+  return (await sqlite
     .prepare(`SELECT id, title, topic FROM tasks WHERE status = 'Proses' ORDER BY no ASC`)
-    .all() as { id: number; title: string; topic: string }[];
+    .all()) as { id: number; title: string; topic: string }[];
 }

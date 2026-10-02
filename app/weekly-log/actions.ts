@@ -4,16 +4,16 @@ import { sqlite } from "@/lib/db/client";
 import { getIsoWeekInfo } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
-function recomputeActualHours(weekNumber: number, startDate: string) {
+async function recomputeActualHours(weekNumber: number, startDate: string) {
   const endDate = new Date(startDate);
   endDate.setDate(endDate.getDate() + 7);
-  const row = sqlite
+  const row = (await sqlite
     .prepare(
       `SELECT COALESCE(SUM(duration_minutes), 0) as minutes FROM study_sessions
        WHERE mode = 'focus' AND started_at >= ? AND started_at < ?`
     )
-    .get(new Date(startDate).toISOString(), endDate.toISOString()) as { minutes: number };
-  return row.minutes / 60;
+    .get(new Date(startDate).toISOString(), endDate.toISOString())) as { minutes: number };
+  return Number(row.minutes) / 60;
 }
 
 export async function upsertWeeklyLog(input: {
@@ -24,19 +24,19 @@ export async function upsertWeeklyLog(input: {
   notes: string;
 }) {
   const now = new Date().toISOString();
-  const actualHours = recomputeActualHours(input.weekNumber, input.startDate);
-  const existing = sqlite
+  const actualHours = await recomputeActualHours(input.weekNumber, input.startDate);
+  const existing = (await sqlite
     .prepare(`SELECT id FROM weekly_logs WHERE week_number = ? AND start_date = ?`)
-    .get(input.weekNumber, input.startDate) as { id: number } | undefined;
+    .get(input.weekNumber, input.startDate)) as { id: number } | undefined;
 
   if (existing) {
-    sqlite
+    await sqlite
       .prepare(
         `UPDATE weekly_logs SET focus_phase = ?, target_hours = ?, actual_hours = ?, notes = ?, updated_at = ? WHERE id = ?`
       )
       .run(input.focusPhase, input.targetHours, actualHours, input.notes, now, existing.id);
   } else {
-    sqlite
+    await sqlite
       .prepare(
         `INSERT INTO weekly_logs (week_number, start_date, focus_phase, target_hours, actual_hours, notes, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
@@ -48,15 +48,15 @@ export async function upsertWeeklyLog(input: {
 
 export async function ensureCurrentWeekLog() {
   const { weekNumber, startDate } = getIsoWeekInfo();
-  const existing = sqlite
+  const existing = (await sqlite
     .prepare(`SELECT id FROM weekly_logs WHERE week_number = ? AND start_date = ?`)
-    .get(weekNumber, startDate) as { id: number } | undefined;
+    .get(weekNumber, startDate)) as { id: number } | undefined;
   if (!existing) {
     await upsertWeeklyLog({ weekNumber, startDate, focusPhase: null, targetHours: 9, notes: "" });
   }
 }
 
 export async function deleteWeeklyLog(id: number) {
-  sqlite.prepare(`DELETE FROM weekly_logs WHERE id = ?`).run(id);
+  await sqlite.prepare(`DELETE FROM weekly_logs WHERE id = ?`).run(id);
   revalidatePath("/weekly-log");
 }

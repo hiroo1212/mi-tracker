@@ -1,4 +1,4 @@
-import { sqlite } from "@/lib/db/client";
+import { sqlite, ensureSeeded } from "@/lib/db/client";
 
 export type MarketSizingCalc = {
   id: number;
@@ -13,6 +13,7 @@ export type MarketSizingCalc = {
   created_at: string;
 };
 
-export function getMarketSizingCalcs(): MarketSizingCalc[] {
-  return sqlite.prepare(`SELECT * FROM market_sizing_calcs ORDER BY created_at DESC`).all() as MarketSizingCalc[];
+export async function getMarketSizingCalcs(): Promise<MarketSizingCalc[]> {
+  await ensureSeeded();
+  return (await sqlite.prepare(`SELECT * FROM market_sizing_calcs ORDER BY created_at DESC`).all()) as MarketSizingCalc[];
 }

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 export async function createNote(input: { title: string; content: string; tags: string; relatedTaskId: number | null }) {
   const now = new Date().toISOString();
-  const result = sqlite
+  const result = await sqlite
     .prepare(
       `INSERT INTO notes (title, content, tags, related_task_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`
     )
@@ -17,7 +17,7 @@ export async function createNote(input: { title: string; content: string; tags: 
 
 export async function updateNote(id: number, input: { title: string; content: string; tags: string; relatedTaskId: number | null }) {
   const now = new Date().toISOString();
-  sqlite
+  await sqlite
     .prepare(
       `UPDATE notes SET title = ?, content = ?, tags = ?, related_task_id = ?, updated_at = ? WHERE id = ?`
     )
@@ -27,7 +27,7 @@ export async function updateNote(id: number, input: { title: string; content: st
 }
 
 export async function deleteNote(id: number) {
-  sqlite.prepare(`DELETE FROM notes WHERE id = ?`).run(id);
+  await sqlite.prepare(`DELETE FROM notes WHERE id = ?`).run(id);
   revalidatePath("/notes");
   revalidatePath("/roadmap");
 }

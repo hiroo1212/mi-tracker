@@ -28,25 +28,25 @@ export async function importBackup(jsonText: string): Promise<{ ok: boolean; mes
   }
 
   try {
-    const tx = sqlite.transaction(() => {
-      // Delete children before parents-ish order doesn't matter much without FK constraints, but reverse order is safer.
+    const tx = await sqlite.transaction(async () => {
       for (const table of [...TABLES].reverse()) {
-        sqlite.prepare(`DELETE FROM ${table}`).run();
+        await sqlite.prepare(`DELETE FROM ${table}`).run();
       }
       for (const table of TABLES) {
         const rows = tables[table];
         if (!Array.isArray(rows) || rows.length === 0) continue;
         const columns = Object.keys(rows[0]);
-        const placeholders = columns.map(() => "?").join(", ");
-        const stmt = sqlite.prepare(
-          `INSERT INTO ${table} (${columns.map((c) => `"${c}"`).join(", ")}) VALUES (${placeholders})`
-        );
         for (const row of rows) {
-          stmt.run(...columns.map((c) => row[c] as never));
+          const placeholders = columns.map(() => "?").join(", ");
+          await sqlite
+            .prepare(
+              `INSERT INTO ${table} (${columns.map((c) => `"${c}"`).join(", ")}) VALUES (${placeholders})`
+            )
+            .run(...columns.map((c) => row[c] as never));
         }
       }
     });
-    tx();
+    await tx();
   } catch (err) {
     return { ok: false, message: `Gagal mengimpor: ${(err as Error).message}` };
   }

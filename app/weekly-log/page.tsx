@@ -1,11 +1,12 @@
-import { sqlite } from "@/lib/db/client";
+import { sqlite, ensureSeeded } from "@/lib/db/client";
 import { WeeklyLogView, type WeeklyLogRow } from "./WeeklyLogView";
 
 export const dynamic = "force-dynamic";
 
-export default function WeeklyLogPage() {
-  const logs = sqlite.prepare(`SELECT * FROM weekly_logs ORDER BY start_date DESC`).all() as WeeklyLogRow[];
-  const phases = sqlite.prepare(`SELECT id, name FROM phases ORDER BY "order" ASC`).all() as { id: number; name: string }[];
+export default async function WeeklyLogPage() {
+  await ensureSeeded();
+  const logs = (await sqlite.prepare(`SELECT * FROM weekly_logs ORDER BY start_date DESC`).all()) as WeeklyLogRow[];
+  const phases = (await sqlite.prepare(`SELECT id, name FROM phases ORDER BY "order" ASC`).all()) as { id: number; name: string }[];
   return (
     <div className="flex flex-col gap-6">
       <div>

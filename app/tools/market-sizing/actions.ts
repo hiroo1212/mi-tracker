@@ -16,7 +16,7 @@ export type MarketSizingInput = {
 
 export async function saveMarketSizing(input: MarketSizingInput) {
   const now = new Date().toISOString();
-  sqlite
+  await sqlite
     .prepare(
       `INSERT INTO market_sizing_calcs (name, method, tam_value, tam_assumption, sam_value, sam_assumption, som_value, som_assumption, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -36,6 +36,6 @@ export async function saveMarketSizing(input: MarketSizingInput) {
 }
 
 export async function deleteMarketSizing(id: number) {
-  sqlite.prepare(`DELETE FROM market_sizing_calcs WHERE id = ?`).run(id);
+  await sqlite.prepare(`DELETE FROM market_sizing_calcs WHERE id = ?`).run(id);
   revalidatePath("/tools/market-sizing");
 }

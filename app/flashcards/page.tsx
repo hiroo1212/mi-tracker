@@ -3,9 +3,8 @@ import { FlashcardsView } from "./FlashcardsView";
 
 export const dynamic = "force-dynamic";
 
-export default function FlashcardsPage() {
-  const cards = getFlashcards();
-  const queue = getStudyQueue();
+export default async function FlashcardsPage() {
+  const [cards, queue] = await Promise.all([getFlashcards(), getStudyQueue()]);
   return (
     <div className="flex flex-col gap-6">
       <div>

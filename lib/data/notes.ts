@@ -1,4 +1,4 @@
-import { sqlite } from "@/lib/db/client";
+import { sqlite, ensureSeeded } from "@/lib/db/client";
 
 export type NoteRow = {
   id: number;
@@ -11,27 +11,28 @@ export type NoteRow = {
   updated_at: string;
 };
 
-export function getNotes(query?: string): NoteRow[] {
+export async function getNotes(query?: string): Promise<NoteRow[]> {
+  await ensureSeeded();
   if (query && query.trim()) {
     const like = `%${query.trim()}%`;
-    return sqlite
+    return (await sqlite
       .prepare(
         `SELECT n.*, t.title as task_title FROM notes n
          LEFT JOIN tasks t ON t.id = n.related_task_id
          WHERE n.title LIKE ? OR n.content LIKE ? OR n.tags LIKE ?
          ORDER BY n.updated_at DESC`
       )
-      .all(like, like, like) as NoteRow[];
+      .all(like, like, like)) as NoteRow[];
   }
-  return sqlite
+  return (await sqlite
     .prepare(
       `SELECT n.*, t.title as task_title FROM notes n
        LEFT JOIN tasks t ON t.id = n.related_task_id
        ORDER BY n.updated_at DESC`
     )
-    .all() as NoteRow[];
+    .all()) as NoteRow[];
 }
 
-export function getTasksForLinking() {
-  return sqlite.prepare(`SELECT id, title FROM tasks ORDER BY no ASC`).all() as { id: number; title: string }[];
+export async function getTasksForLinking() {
+  return (await sqlite.prepare(`SELECT id, title FROM tasks ORDER BY no ASC`).all()) as { id: number; title: string }[];
 }

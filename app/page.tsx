@@ -16,14 +16,16 @@ import { priorityBadgeClass, statusBadgeClass, formatHours, daysSince } from "@/
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
-  const overall = getOverallProgress();
-  const phases = getPhaseProgress();
-  const todayTasks = getTodayTasks();
-  const stuck = getStuckTasks();
-  const week = getWeekHours();
-  const heatmap = getStudyHeatmap();
-  const streak = getStreakDays();
+export default async function DashboardPage() {
+  const [overall, phases, todayTasks, stuck, week, heatmap, streak] = await Promise.all([
+    getOverallProgress(),
+    getPhaseProgress(),
+    getTodayTasks(),
+    getStuckTasks(),
+    getWeekHours(),
+    getStudyHeatmap(),
+    getStreakDays(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sqlite } from "@/lib/db/client";
+import { sqlite, ensureSeeded } from "@/lib/db/client";
 
 const TABLES = [
   "phases",
@@ -13,9 +13,10 @@ const TABLES = [
 ] as const;
 
 export async function GET() {
+  await ensureSeeded();
   const tables: Record<string, unknown[]> = {};
   for (const table of TABLES) {
-    tables[table] = sqlite.prepare(`SELECT * FROM ${table}`).all();
+    tables[table] = await sqlite.prepare(`SELECT * FROM ${table}`).all();
   }
   const data = { exportedAt: new Date().toISOString(), tables };
 

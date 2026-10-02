@@ -1,4 +1,4 @@
-import { sqlite } from "@/lib/db/client";
+import { sqlite, ensureSeeded } from "@/lib/db/client";
 import { getIsoWeekInfo, daysSince } from "@/lib/utils";
 import dayjs from "dayjs";
 
@@ -24,17 +24,18 @@ export type TaskRow = {
   estimated_hours: number;
 };
 
-export function getPhaseProgress(): PhaseProgress[] {
-  const phases = sqlite
+export async function getPhaseProgress(): Promise<PhaseProgress[]> {
+  await ensureSeeded();
+  const phases = (await sqlite
     .prepare(`SELECT id, name, target_period as targetPeriod, "order" as "order" FROM phases ORDER BY "order" ASC`)
-    .all() as { id: number; name: string; targetPeriod: string; order: number }[];
+    .all()) as { id: number; name: string; targetPeriod: string; order: number }[];
 
-  const counts = sqlite
+  const counts = (await sqlite
     .prepare(
       `SELECT phase_id, COUNT(*) as total, SUM(CASE WHEN status = 'Selesai' THEN 1 ELSE 0 END) as done
        FROM tasks GROUP BY phase_id`
     )
-    .all() as { phase_id: number; total: number; done: number }[];
+    .all()) as { phase_id: number; total: number; done: number }[];
 
   const countMap = new Map(counts.map((c) => [c.phase_id, c]));
 
@@ -45,18 +46,18 @@ export function getPhaseProgress(): PhaseProgress[] {
   });
 }
 
-export function getOverallProgress() {
-  const row = sqlite
+export async function getOverallProgress() {
+  const row = (await sqlite
     .prepare(
       `SELECT COUNT(*) as total, SUM(CASE WHEN status = 'Selesai' THEN 1 ELSE 0 END) as done FROM tasks`
     )
-    .get() as { total: number; done: number };
+    .get()) as { total: number; done: number };
   const pct = row.total > 0 ? Math.round((row.done / row.total) * 100) : 0;
   return { total: row.total, done: row.done, pct };
 }
 
-export function getTodayTasks(): TaskRow[] {
-  const inProgress = sqlite
+export async function getTodayTasks(): Promise<TaskRow[]> {
+  const inProgress = (await sqlite
     .prepare(
       `SELECT t.id, t.no, t.phase_id, t.topic, t.title, t.priority, t.status, t.status_changed_at, t.estimated_hours
        FROM tasks t
@@ -64,9 +65,9 @@ export function getTodayTasks(): TaskRow[] {
        WHERE t.status = 'Proses'
        ORDER BY p."order" ASC, t.no ASC`
     )
-    .all() as TaskRow[];
+    .all()) as TaskRow[];
 
-  const nextWajib = sqlite
+  const nextWajib = (await sqlite
     .prepare(
       `SELECT t.id, t.no, t.phase_id, t.topic, t.title, t.priority, t.status, t.status_changed_at, t.estimated_hours
        FROM tasks t
@@ -75,39 +76,40 @@ export function getTodayTasks(): TaskRow[] {
        ORDER BY p."order" ASC, t.no ASC
        LIMIT 1`
     )
-    .all() as TaskRow[];
+    .all()) as TaskRow[];
 
   return [...inProgress, ...nextWajib];
 }
 
-export function getStuckTasks(): TaskRow[] {
-  const rows = sqlite
+export async function getStuckTasks(): Promise<TaskRow[]> {
+  const rows = (await sqlite
     .prepare(
       `SELECT t.id, t.no, t.phase_id, t.topic, t.title, t.priority, t.status, t.status_changed_at, t.estimated_hours
        FROM tasks t
        WHERE t.status = 'Proses'`
     )
-    .all() as TaskRow[];
+    .all()) as TaskRow[];
   return rows.filter((r) => daysSince(r.status_changed_at) > 7);
 }
 
-export function getWeekHours() {
+export async function getWeekHours() {
+  await ensureSeeded();
   const { weekNumber, startDate } = getIsoWeekInfo();
-  const row = sqlite
+  const row = (await sqlite
     .prepare(`SELECT target_hours as targetHours, actual_hours as actualHours FROM weekly_logs WHERE week_number = ? AND start_date = ?`)
-    .get(weekNumber, startDate) as { targetHours: number; actualHours: number } | undefined;
+    .get(weekNumber, startDate)) as { targetHours: number; actualHours: number } | undefined;
 
   if (row) return { targetHours: row.targetHours, actualHours: row.actualHours, weekNumber, startDate };
   return { targetHours: 9, actualHours: 0, weekNumber, startDate };
 }
 
-export function getStudyHeatmap(days = 84) {
+export async function getStudyHeatmap(days = 84) {
   const since = dayjs().subtract(days, "day").startOf("day").toISOString();
-  const rows = sqlite
+  const rows = (await sqlite
     .prepare(
       `SELECT started_at, duration_minutes FROM study_sessions WHERE started_at >= ? AND mode = 'focus'`
     )
-    .all(since) as { started_at: string; duration_minutes: number }[];
+    .all(since)) as { started_at: string; duration_minutes: number }[];
 
   const byDay = new Map<string, number>();
   for (const r of rows) {
@@ -123,8 +125,8 @@ export function getStudyHeatmap(days = 84) {
   return result;
 }
 
-export function getStreakDays() {
-  const heatmap = getStudyHeatmap(365);
+export async function getStreakDays() {
+  const heatmap = await getStudyHeatmap(365);
   let streak = 0;
   for (let i = heatmap.length - 1; i >= 0; i--) {
     if (heatmap[i].minutes > 0) streak++;

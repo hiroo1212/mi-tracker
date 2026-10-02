@@ -3,8 +3,8 @@ import { MarketSizingView } from "./MarketSizingView";
 
 export const dynamic = "force-dynamic";
 
-export default function MarketSizingPage() {
-  const calcs = getMarketSizingCalcs();
+export default async function MarketSizingPage() {
+  const calcs = await getMarketSizingCalcs();
   return (
     <div className="flex flex-col gap-6">
       <div>

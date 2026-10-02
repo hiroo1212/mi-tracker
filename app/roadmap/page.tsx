@@ -3,8 +3,8 @@ import { RoadmapView } from "./RoadmapView";
 
 export const dynamic = "force-dynamic";
 
-export default function RoadmapPage() {
-  const phases = getRoadmap();
+export default async function RoadmapPage() {
+  const phases = await getRoadmap();
   return (
     <div className="flex flex-col gap-6">
       <div>

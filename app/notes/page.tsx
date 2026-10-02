@@ -3,9 +3,8 @@ import { NotesView } from "./NotesView";
 
 export const dynamic = "force-dynamic";
 
-export default function NotesPage() {
-  const notes = getNotes();
-  const tasks = getTasksForLinking();
+export default async function NotesPage() {
+  const [notes, tasks] = await Promise.all([getNotes(), getTasksForLinking()]);
   return (
     <div className="flex flex-col gap-6">
       <div>

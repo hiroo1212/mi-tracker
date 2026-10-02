@@ -1,22 +1,22 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, doublePrecision, serial } from "drizzle-orm/pg-core";
 
-export const phases = sqliteTable("phases", {
+export const phases = pgTable("phases", {
   id: integer("id").primaryKey(),
   name: text("name").notNull(),
   targetPeriod: text("target_period").notNull(),
   order: integer("order").notNull(),
 });
 
-export const tasks = sqliteTable("tasks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
   no: integer("no").notNull(),
   phaseId: integer("phase_id").notNull(),
   topic: text("topic").notNull(),
   title: text("title").notNull(),
-  priority: text("priority").notNull(), // Wajib | Penting | Opsional
-  estimatedHours: real("estimated_hours").notNull().default(0),
+  priority: text("priority").notNull().default("Wajib"),
+  estimatedHours: doublePrecision("estimated_hours").notNull().default(0),
   resourceNotes: text("resource_notes").default(""),
-  status: text("status").notNull().default("Belum"), // Belum | Proses | Selesai
+  status: text("status").notNull().default("Belum"),
   targetDate: text("target_date"),
   completedDate: text("completed_date"),
   notes: text("notes").default(""),
@@ -25,40 +25,40 @@ export const tasks = sqliteTable("tasks", {
   updatedAt: text("updated_at").notNull(),
 });
 
-export const weeklyLogs = sqliteTable("weekly_logs", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const weeklyLogs = pgTable("weekly_logs", {
+  id: serial("id").primaryKey(),
   weekNumber: integer("week_number").notNull(),
   startDate: text("start_date").notNull(),
   focusPhase: integer("focus_phase"),
-  targetHours: real("target_hours").notNull().default(9),
-  actualHours: real("actual_hours").notNull().default(0),
+  targetHours: doublePrecision("target_hours").notNull().default(9),
+  actualHours: doublePrecision("actual_hours").notNull().default(0),
   notes: text("notes").default(""),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
-export const studySessions = sqliteTable("study_sessions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const studySessions = pgTable("study_sessions", {
+  id: serial("id").primaryKey(),
   taskId: integer("task_id"),
   startedAt: text("started_at").notNull(),
   endedAt: text("ended_at").notNull(),
-  durationMinutes: real("duration_minutes").notNull(),
-  mode: text("mode").default("focus"), // focus | break
+  durationMinutes: doublePrecision("duration_minutes").notNull(),
+  mode: text("mode").default("focus"),
   createdAt: text("created_at").notNull(),
 });
 
-export const notes = sqliteTable("notes", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const notes = pgTable("notes", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   content: text("content").notNull().default(""),
-  tags: text("tags").default(""), // comma-separated
+  tags: text("tags").default(""),
   relatedTaskId: integer("related_task_id"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
-export const flashcards = sqliteTable("flashcards", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const flashcards = pgTable("flashcards", {
+  id: serial("id").primaryKey(),
   term: text("term").notNull(),
   definition: text("definition").notNull(),
   category: text("category").default(""),
@@ -68,21 +68,21 @@ export const flashcards = sqliteTable("flashcards", {
   updatedAt: text("updated_at").notNull(),
 });
 
-export const marketSizingCalcs = sqliteTable("market_sizing_calcs", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const marketSizingCalcs = pgTable("market_sizing_calcs", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  method: text("method").default("top-down"), // top-down | bottom-up
-  tamValue: real("tam_value").notNull().default(0),
+  method: text("method").default("top-down"),
+  tamValue: doublePrecision("tam_value").notNull().default(0),
   tamAssumption: text("tam_assumption").notNull().default(""),
-  samValue: real("sam_value").notNull().default(0),
+  samValue: doublePrecision("sam_value").notNull().default(0),
   samAssumption: text("sam_assumption").notNull().default(""),
-  somValue: real("som_value").notNull().default(0),
+  somValue: doublePrecision("som_value").notNull().default(0),
   somAssumption: text("som_assumption").notNull().default(""),
   createdAt: text("created_at").notNull(),
 });
 
-export const dataSources = sqliteTable("data_sources", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const dataSources = pgTable("data_sources", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   url: text("url").notNull().default(""),
   category: text("category").default(""),

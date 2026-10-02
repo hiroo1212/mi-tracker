@@ -1,4 +1,4 @@
-import { sqlite } from "@/lib/db/client";
+import { sqlite, ensureSeeded } from "@/lib/db/client";
 
 export type RoadmapTask = {
   id: number;
@@ -22,19 +22,20 @@ export type RoadmapPhase = {
   tasks: RoadmapTask[];
 };
 
-export function getRoadmap(): RoadmapPhase[] {
-  const phases = sqlite
+export async function getRoadmap(): Promise<RoadmapPhase[]> {
+  await ensureSeeded();
+  const phases = (await sqlite
     .prepare(`SELECT id, name, target_period as targetPeriod, "order" as "order" FROM phases ORDER BY "order" ASC`)
-    .all() as { id: number; name: string; targetPeriod: string; order: number }[];
+    .all()) as { id: number; name: string; targetPeriod: string; order: number }[];
 
-  const tasks = sqlite
+  const tasks = (await sqlite
     .prepare(
       `SELECT t.id, t.no, t.phase_id, t.topic, t.title, t.priority, t.estimated_hours, t.resource_notes,
               t.status, t.notes,
               (SELECT COUNT(*) FROM notes n WHERE n.related_task_id = t.id) as note_count
        FROM tasks t ORDER BY t.no ASC`
     )
-    .all() as RoadmapTask[];
+    .all()) as RoadmapTask[];
 
   return phases.map((p) => ({
     ...p,
