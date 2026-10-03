@@ -1,7 +1,6 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
-import { seedIfEmpty } from "./seed";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
@@ -10,18 +9,6 @@ if (!process.env.DATABASE_URL) {
 const pgClient = postgres(process.env.DATABASE_URL, { max: 1 });
 export const db = drizzle(pgClient, { schema });
 export { pgClient as sqlClient };
-
-let seeded = false;
-
-export async function ensureSeeded() {
-  if (seeded) return;
-  seeded = true;
-  try {
-    await seedIfEmpty(db);
-  } catch (err) {
-    console.warn("ensureSeeded: skipped due to error (possibly already seeded)", err);
-  }
-}
 
 function convertPlaceholders(sql: string): string {
   let i = 0;
@@ -72,3 +59,9 @@ export const sqlite = {
     };
   },
 };
+
+let seeded = false;
+export async function ensureSeeded() {
+  seeded = true;
+  return;
+}
