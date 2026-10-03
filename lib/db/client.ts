@@ -2,11 +2,8 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required");
-}
-
-const pgClient = postgres(process.env.DATABASE_URL, { max: 1 });
+const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres";
+const pgClient = postgres(connectionString, { max: 1, prepare: false });
 export const db = drizzle(pgClient, { schema });
 export { pgClient as sqlClient };
 
