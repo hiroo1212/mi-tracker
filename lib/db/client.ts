@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 
 const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres";
-const pgClient = postgres(connectionString, { max: 1, prepare: false });
+const pgClient = postgres(connectionString, { max: 10, prepare: false });
 export const db = drizzle(pgClient, { schema });
 export { pgClient as sqlClient };
 

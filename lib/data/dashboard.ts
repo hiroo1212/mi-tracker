@@ -41,8 +41,10 @@ export async function getPhaseProgress(): Promise<PhaseProgress[]> {
 
   return phases.map((p) => {
     const c = countMap.get(p.id) ?? { total: 0, done: 0 };
-    const pct = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
-    return { ...p, total: c.total, done: c.done, pct };
+    const total = Number(c.total || 0);
+    const done = Number(c.done || 0);
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    return { ...p, total, done, pct };
   });
 }
 
@@ -51,9 +53,11 @@ export async function getOverallProgress() {
     .prepare(
       `SELECT COUNT(*) as total, SUM(CASE WHEN status = 'Selesai' THEN 1 ELSE 0 END) as done FROM tasks`
     )
-    .get()) as { total: number; done: number };
-  const pct = row.total > 0 ? Math.round((row.done / row.total) * 100) : 0;
-  return { total: row.total, done: row.done, pct };
+    .get()) as { total: number | string; done: number | string };
+  const total = Number(row?.total || 0);
+  const done = Number(row?.done || 0);
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  return { total, done, pct };
 }
 
 export async function getTodayTasks(): Promise<TaskRow[]> {
